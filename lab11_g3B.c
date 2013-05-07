@@ -77,9 +77,8 @@ void LaunchRequest(uint8 Task);         //Launches request for a Task
 void InitPCB(void);
 
 void TaskScheduler(void);    
-void Task1(void);
-void Task2(void);
-void Task3(void);
+void TaskSetLED(void);
+void TaskSetLCD(void);
 
 void main(void);
 
@@ -205,7 +204,7 @@ void SetLEDS(uint8 ledValue, bool flag) {
 //   Tasking Support
 //*****************************
 
-#define NTASKS  3     // total number of tasks in this workload, not counting main loop
+#define NTASKS  4     // total number of tasks in this workload, not counting main loop
 
 uint8 CurrentTask = NTASKS;    // current task executing is initialized to be main loop
 
@@ -240,12 +239,10 @@ void InitPCB(void)
   uint32 TempTime; // store time to avoid time changing between uses
 
   // Set up task pointers and initial run status
-  PCB[0].TaskPtr = &Task0;  PCB[0].LaunchRequest = TRUE;  // always run scheduler
-  PCB[1].TaskPtr = &TaskChecker;  PCB[1].LaunchRequest = TRUE;  // always run switch checker
-  PCB[2].TaskPtr = &Task2;  PCB[2].LaunchRequest = FALSE;  // other tasks off by default until switches are set
-  PCB[3].TaskPtr = &Task3;  PCB[3].LaunchRequest = FALSE; 
-  PCB[4].TaskPtr = &Task4;  PCB[4].LaunchRequest = FALSE;
-  PCB[5].TaskPtr = &Task5;  PCB[5].LaunchRequest = FALSE;
+  PCB[0].TaskPtr = &TaskScheduler;  PCB[0].LaunchRequest = TRUE;  // always run scheduler
+  PCB[1].TaskPtr = &TaskChecker;    PCB[1].LaunchRequest = TRUE;  // always run switch checker
+  PCB[2].TaskPtr = &TaskSetLED;     PCB[2].LaunchRequest = FALSE;  // other tasks off by default until switches are set
+  PCB[3].TaskPtr = &TaskSetLCD;     PCB[3].LaunchRequest = FALSE; 
   
   // Set up task periods
   //    Period is in msec -- what period actually does varies depending on scheduling technique
@@ -253,16 +250,12 @@ void InitPCB(void)
   PCB[1].Period = PERIOD1; 
   PCB[2].Period = PERIOD2; 
   PCB[3].Period = PERIOD3; 
-  PCB[4].Period = PERIOD4; 
-  PCB[5].Period = PERIOD5; 
   
   // Set task running status flags
   PCB[0].ReadyToLaunch = TRUE;     PCB[0].Running = FALSE;   // Always launch scheduler
   PCB[1].ReadyToLaunch = FALSE;    PCB[1].Running = FALSE;   
   PCB[2].ReadyToLaunch = FALSE;    PCB[2].Running = FALSE;   
   PCB[3].ReadyToLaunch = FALSE;    PCB[3].Running = FALSE;   
-  PCB[4].ReadyToLaunch = FALSE;    PCB[4].Running = FALSE;   
-  PCB[5].ReadyToLaunch = FALSE;    PCB[5].Running = FALSE;   
   
   // Set all NextTime values with same current time to initialize task timing
   TempTime = 0;    
@@ -270,8 +263,6 @@ void InitPCB(void)
   PCB[1].NextTime = 0;
   PCB[2].NextTime = 0;
   PCB[3].NextTime = 0;
-  PCB[4].NextTime = 0;
-  PCB[5].NextTime = 0;
 }
     
 // --------------------
