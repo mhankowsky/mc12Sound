@@ -182,7 +182,7 @@ void SetLEDS(uint8 ledValue, bool flag) {
 
   //DisableInterrupts;    // Need atomic update to LEDValue 
 
-  for(i=0, i<ledValue, i++){
+  for(i=0; i<ledValue; i++){
       // turn LED on by zeroing appropriate bit
       LEDValue = LEDValue & ( (0x1<<i) ^ 0xFF);
   }
