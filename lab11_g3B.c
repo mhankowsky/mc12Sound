@@ -30,11 +30,9 @@
 
 // Task period (in msec)
 #define PERIOD0     50   // if you make this too fast the scheduler overhead gets out of hand (8 msec per run)
-#define PERIOD1    250
-#define PERIOD2    500
-#define PERIOD3   1000
-#define PERIOD4   5000
-#define PERIOD5  10000
+#define PERIOD1     100
+#define PERIOD2     150
+#define PERIOD3    200 
 
 // Preemptive Utilization ~= 8/50 + 8/250 + 117/500 + 227/1000 + 450/5000 + 1100/10000 = .853 + other tasks + B
 
@@ -46,7 +44,9 @@
 #include <mc9s12c128.h>     /* derivative information */
 #pragma LINK_INFO DERIVATIVE "mc9s12c128"
 
+#include <stdio.h>
 #include "modclock.h"
+#include "lcd_lib.h"
 
 //*****************
 //  Typedefs
@@ -95,11 +95,9 @@ void CreateLaunchStack(uint8 Task);
 //*****************************
 //   Variables
 //*****************************
-char * LCDvalue = "0";
-int    LEDvalue = 0;
-
-int mic_in;
-int pot_in; 
+char LCDvalue[50];
+uint8 mic_in = 0;
+uint8 pot_in = 0; 
 
 //*****************************
 //   Switch and LED interface
@@ -164,13 +162,14 @@ void InitPorts(void) {
       output compare with a default compare value of 0xF000
       enable interrupt on successful compare
   */
-  TSCR1 = TSCR1_TEN_MASK | TSCR1_TSWAI_MASK | TSCR1_TSFRZ_MASK;
+  /*TSCR1 = TSCR1_TEN_MASK | TSCR1_TSWAI_MASK | TSCR1_TSFRZ_MASK;
   TSCR2 = TSCR2_TCRE_MASK | TSCR2_PR2_MASK;
   TIOS = TIOS_IOS7_MASK;
   OC7M = OC7M_OC7M7_MASK;
   TC7 = 0xF000;
   
   TIE = 0xFF;
+  */
 
   
 }
@@ -240,7 +239,7 @@ void InitPCB(void)
 
   // Set up task pointers and initial run status
   PCB[0].TaskPtr = &TaskScheduler;  PCB[0].LaunchRequest = TRUE;  // always run scheduler
-  PCB[1].TaskPtr = &TaskCheck;    PCB[1].LaunchRequest = TRUE;  // always run switch checker
+  PCB[1].TaskPtr = &TaskCheck;      PCB[1].LaunchRequest = TRUE;  // always run switch checker
   PCB[2].TaskPtr = &TaskSetLED;     PCB[2].LaunchRequest = FALSE;  // other tasks off by default until switches are set
   PCB[3].TaskPtr = &TaskSetLCD;     PCB[3].LaunchRequest = FALSE; 
   
@@ -277,7 +276,7 @@ uint8 AddrLo(Ptr2Function Ptr) {
 }
 
 // Call when task terminates after running
-void TaskTerminate(void){
+void TaskTerminate(void) {
   PCB[CurrentTask].Running = FALSE;
   for(;;){} // Loop forever
 }
@@ -393,8 +392,15 @@ void TaskCheck(void)
 //   Workload tasks
 //********************************************
 
-void TaskSetLCD(void) { 
-   
+void TaskSetLCD(void) {
+  int err;
+  DisableInterrupts;
+  err = sprintf(LCDvalue, "THR:0x%x", pot_in);
+  lcdWriteLine(1, LCDvalue);
+  
+  err = sprintf(LCDvalue, "Cur:0x%x", mic_in);
+  lcdWriteLine(2, LCDvalue);
+  EnableInterrupts; 
 }
 
 void TaskSetLED(void) {
@@ -413,6 +419,7 @@ void main(void) {
   clockSetup();       // run module at 8 MHz
   SetupTimer();       // init time of day ISR and variables
   InitPCB();
+  lcdSetup();           //Set up LCD for writing 
 
   CurrentTask = NTASKS; // current task is main loop
   EnableInterrupts;     // this starts the tasker
