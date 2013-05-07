@@ -76,7 +76,8 @@ void InitPorts(void);
 void LaunchRequest(uint8 Task);         //Launches request for a Task  
 void InitPCB(void);
 
-void TaskScheduler(void);    
+void TaskScheduler(void);
+void TaskCheck(void);    
 void TaskSetLED(void);
 void TaskSetLCD(void);
 
@@ -176,11 +177,13 @@ void Init(void) {
 
 // This routine sets the LED outputs given an LED bit position and an On/Off flag
 // It sets the LED and all others of a lower value
-void SetLEDS(uint8 ledValue, bool flag) { 
+void SetLEDS(uint8 ledValue) { 
   static uint8 LEDValue = 0xFF;    // inverted output values (1 = LED off); tracks PORTB contents
   int i;
 
   //DisableInterrupts;    // Need atomic update to LEDValue 
+
+  if(ledValue > 8) return;
 
   for(i=0; i<ledValue; i++){
       // turn LED on by zeroing appropriate bit
@@ -235,7 +238,7 @@ void InitPCB(void)
 
   // Set up task pointers and initial run status
   PCB[0].TaskPtr = &TaskScheduler;  PCB[0].LaunchRequest = TRUE;  // always run scheduler
-  PCB[1].TaskPtr = &TaskChecker;    PCB[1].LaunchRequest = TRUE;  // always run switch checker
+  PCB[1].TaskPtr = &TaskCheck;    PCB[1].LaunchRequest = TRUE;  // always run switch checker
   PCB[2].TaskPtr = &TaskSetLED;     PCB[2].LaunchRequest = FALSE;  // other tasks off by default until switches are set
   PCB[3].TaskPtr = &TaskSetLCD;     PCB[3].LaunchRequest = FALSE; 
   
@@ -272,7 +275,7 @@ uint8 AddrLo(Ptr2Function Ptr) {
 }
 
 // Call when task terminates after running
-void TaskTerminate(void)  
+void TaskTerminate(void){
   PCB[CurrentTask].Running = FALSE;
   for(;;){} // Loop forever
 }
@@ -404,8 +407,8 @@ void TaskSetLED(void) {
 void main(void) {
 
   // Perform setup tasks
+  InitPorts(void);     //Set up all ports
   clockSetup();       // run module at 8 MHz
-  InitSwitchesLED();  // set up Port B for CPU module switches and LED
   SetupTimer();       // init time of day ISR and variables
   InitPCB();
 
