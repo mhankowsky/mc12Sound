@@ -183,13 +183,8 @@ void SetLEDS(uint8 ledValue, bool flag) {
   //DisableInterrupts;    // Need atomic update to LEDValue 
 
   for(i=0, i<ledValue, i++){
-    if (flag) {  
       // turn LED on by zeroing appropriate bit
-      LEDValue = LEDValue & (position ^ 0xFF);
-    } else {  
-      // turn LED off by setting appropriate bit
-      LEDValue = LEDValue | position;
-    }
+      LEDValue = LEDValue & ( (0x1<<i) ^ 0xFF);
   }
   
   //EnableInterrupts;    // End Atomic - LEDValue now set and flag can not be changed so we can be sure the value is correct  
