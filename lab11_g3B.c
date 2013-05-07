@@ -98,6 +98,8 @@ void CreateLaunchStack(uint8 Task);
 char * LCDvalue = "0";
 int    LEDvalue = 0;
 
+int mic_in;
+int pot_in; 
 
 //*****************************
 //   Switch and LED interface
@@ -117,7 +119,7 @@ int    LEDvalue = 0;
 
 // Initialize Switches and LEDs attached to port B
 //
-void Init(void) {
+void InitPorts(void) {
   // Set up port A as output
   DDRA = 0xFF;
 
@@ -407,7 +409,7 @@ void TaskSetLED(void) {
 void main(void) {
 
   // Perform setup tasks
-  InitPorts(void);     //Set up all ports
+  InitPorts();     //Set up all ports
   clockSetup();       // run module at 8 MHz
   SetupTimer();       // init time of day ISR and variables
   InitPCB();
@@ -419,7 +421,7 @@ void main(void) {
   for(;;) {
   }
 
-
+}
 //*****************************************************
 //     Timer Task & ISR;   includes Preemptive Tasker
 //*****************************************************
@@ -537,21 +539,12 @@ void interrupt 16 TimerHandler(void)
 ATDInterrupt:
 */
 void interrupt 22 ATDInterrupt( void ) {
-  unsigned int temp_speed;
-  PTT |= ATD_INTERRUPT_INDICATOR;
 
-  ad0_in = ATDDR0H;
-  ad1_in = ATDDR1H;
+  mic_in = ATDDR0H;
+  pot_in = ATDDR1H;
   
-  
-  PWMDTY0 = 0xFF - ad1_in;
- 
-  
-  temp_speed = ad0_in * 0xDC;
-  TC7 = temp_speed + 0x186A;
    
   ATDSTAT0 = ATDSTAT0_SCF_MASK | ATDSTAT0;
-  PTT &= ~ATD_INTERRUPT_INDICATOR;
 }
 
 /*
@@ -559,7 +552,6 @@ timer7Interrupt
 */
 void interrupt 15 timer7Interrupt(void) { 
   
-  PTT |= TIMER_INTERRUPT_INDICATOR;
 
  /* chase_counter = (chase_counter+1)%8;
   
@@ -567,9 +559,9 @@ void interrupt 15 timer7Interrupt(void) {
     PTT = (PTT& ~0x1C) | (chase_counter<<2);
   }
   
-  TFLG1 = TFLG1_C7F_MASK;
-   */
-  PTT &= ~TIMER_INTERRUPT_INDICATOR;  
+  
+   */ 
+   TFLG1 = TFLG1_C7F_MASK;
 }
 
 // -----------
