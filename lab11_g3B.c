@@ -38,8 +38,6 @@
 
 // Preemptive Utilization ~= 8/50 + 8/250 + 117/500 + 227/1000 + 450/5000 + 1100/10000 = .853 + other tasks + B
 
-#define STATIC_PERIOD 5000   // 5 second period for single-rate cyclic exec  
-
 //*****************
 //  Includes
 //*****************
@@ -75,7 +73,7 @@ void SetLED(uint8 position, bool flag);  // CAUTION -- enables interrupts as sid
 uint32 TimeNow(void);                    // CAUTION -- enables interrupts as a side effect
 
 void InitPorts(void);
-void LaunchRequest(uint8 Task); 
+void LaunchRequest(uint8 Task);         //Launches request for a Task  
 void InitPCB(void);
 
 void TaskScheduler(void);    
@@ -178,20 +176,24 @@ void Init(void) {
 // ----------
 
 // This routine sets the LED outputs given an LED bit position and an On/Off flag
-void SetLED(uint8 position, bool flag) { 
+// It sets the LED and all others of a lower value
+void SetLEDS(uint8 ledValue, bool flag) { 
   static uint8 LEDValue = 0xFF;    // inverted output values (1 = LED off); tracks PORTB contents
+  int i;
 
-  DisableInterrupts;    // Need atomic update to LEDValue 
+  //DisableInterrupts;    // Need atomic update to LEDValue 
 
-  if (flag) {  
-    // turn LED on by zeroing appropriate bit
-    LEDValue = LEDValue & (position ^ 0xFF);
-  } else {  
-    // turn LED off by setting appropriate bit
-    LEDValue = LEDValue | position;
+  for(i=0, i<ledValue, i++){
+    if (flag) {  
+      // turn LED on by zeroing appropriate bit
+      LEDValue = LEDValue & (position ^ 0xFF);
+    } else {  
+      // turn LED off by setting appropriate bit
+      LEDValue = LEDValue | position;
+    }
   }
   
-  EnableInterrupts;    // End Atomic - LEDValue now set and flag can not be changed so we can be sure the value is correct  
+  //EnableInterrupts;    // End Atomic - LEDValue now set and flag can not be changed so we can be sure the value is correct  
 
   //output new value to LEDs
   PORTB = LEDValue;
@@ -417,7 +419,7 @@ void main(void) {
 
   // Perform setup tasks
   clockSetup();       // run module at 8 MHz
-  InitSwitchesLED();  // set up Port B for CPU module switches and LEDs  (be sure to install jumpers!)
+  InitSwitchesLED();  // set up Port B for CPU module switches and LED
   SetupTimer();       // init time of day ISR and variables
   InitPCB();
 
