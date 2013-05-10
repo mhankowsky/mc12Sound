@@ -660,9 +660,9 @@ void interrupt 22 ATDInterrupt( void ) {
   if(pot_in > 0xc0){
     
     state = alarmOff;
-  }
-  
-  else if (state != alarm && (mic_in) > pot_in) {
+  } else if (state == alarmOff) {
+	state = running;
+  } else if (state != alarm && (mic_in) > pot_in) {
     state = alarm; 
     alarmTime = TimeNowNoInterrupts();
   }
