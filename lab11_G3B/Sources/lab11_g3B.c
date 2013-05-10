@@ -101,6 +101,7 @@ uint32 alarmTime = 0;
 #define setup 0
 #define running 1
 #define alarm 2
+#define alarmOff 3
 uint8 state;
 
 
@@ -160,7 +161,7 @@ void InitPorts(void) {
   
   //Configure the Watchdog Timer
   
-  COPCTL = 0x05; // timer is 8MHz/2^22
+  COPCTL = 0xC5; // timer is 8MHz/2^22
   
   /* 
   configure the timer for:
@@ -409,13 +410,33 @@ void TaskCheck(void)
 
 void TaskSetLCD(void) {
   int err;
-  DisableInterrupts;
-  err = sprintf(LCDvalue, "THR:0x%x", pot_in);
-  lcdWriteLine(1, LCDvalue);
+  uint8 saved_mic;
+  uint8 threshold;
   
-  err = sprintf(LCDvalue, "Cur:0x%x", mic_in);
-  lcdWriteLine(2, LCDvalue);
-  EnableInterrupts; 
+  PORTA = PORTA | (0x02);
+  
+  DisableInterrupts;
+  saved_mic = mic_in;
+  threshold = pot_in;
+  ;
+  
+  if(state == alarmOff){
+    err = sprintf(LCDvalue, "Alarm:");
+    lcdWriteLine(1, LCDvalue);
+    err = sprintf(LCDvalue, "OFF");
+    lcdWriteLine(2, LCDvalue);
+  }
+  else{
+      
+    err = sprintf(LCDvalue, "THR:0x%x", threshold);
+    lcdWriteLine(1, LCDvalue);
+    
+    err = sprintf(LCDvalue, "Cur:0x%x", saved_mic);
+    lcdWriteLine(2, LCDvalue);
+  }
+  EnableInterrupts;
+  
+  PORTA = PORTA & (0xFD);
 }
 
 void TaskSetLED(void) {
@@ -424,6 +445,8 @@ void TaskSetLED(void) {
  uint8 leds_on;
  uint8 threshold;
  bool  alarm_flag = FALSE;
+ 
+ PORTA = PORTA | (0x04);
  
  //Grab the values from A/D -- Make sure they do not change in middle
  DisableInterrupts;
@@ -634,10 +657,17 @@ void interrupt 22 ATDInterrupt( void ) {
   pot_in = ATDDR1H;
   
   
-  if (mic_in > pot_in) {
+  if(pot_in > 0xc0){
+    
+    state = alarmOff;
+  }
+  
+  else if (state != alarm && (mic_in) > pot_in) {
     state = alarm; 
     alarmTime = TimeNowNoInterrupts();
   }
+  
+  
    
   ATDSTAT0 = ATDSTAT0_SCF_MASK | ATDSTAT0;
 }
